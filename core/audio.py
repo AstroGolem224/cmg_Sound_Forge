@@ -1,4 +1,5 @@
 import os
+import sys
 import tempfile
 
 _mixer_ok = False
@@ -10,10 +11,11 @@ def init() -> bool:
     global _mixer_ok
     try:
         import pygame
+        if sys.platform == "win32":
+            os.environ.setdefault("SDL_AUDIODRIVER", "directsound")
+        pygame.mixer.pre_init(frequency=44100, size=-16, channels=2, buffer=1024)
         pygame.init()
-        pygame.mixer.pre_init(frequency=44100, size=-16, channels=2, buffer=512)
-        pygame.mixer.init()
-        _mixer_ok = True
+        _mixer_ok = pygame.mixer.get_init() is not None
     except Exception:
         _mixer_ok = False
     return _mixer_ok
