@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from pathlib import Path
 
 from core.config import load, save, get_key, set_key
-from api import elevenlabs, openai_tts, huggingface, openrouter, nvidia_nim
+from api import elevenlabs, openai_tts, huggingface, openrouter, nvidia_nim, nvidia_tts
 
 app = FastAPI(title="Sound Forge")
 
@@ -115,6 +115,14 @@ def voices_hf():
     return [{"voice_id": m, "name": label} for m, label in huggingface.VOICE_MODELS]
 
 
+@app.get("/api/voices/nvidia")
+def voices_nv():
+    try:
+        return nvidia_tts.get_voices()
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+
 @app.get("/api/voice/preview")
 def voice_preview(url: str):
     try:
@@ -151,6 +159,8 @@ def generate_voice(body: TTSBody):
             data, ext = openai_tts.generate_tts(
                 body.text, body.voice_id, model=body.model_id, speed=body.speed
             )
+        elif p == "nvidia":
+            data, ext = nvidia_tts.generate_tts(body.text, body.voice_id)
         elif p == "bark":
             data, ext = huggingface.generate_tts(body.text, "suno/bark")
         else:

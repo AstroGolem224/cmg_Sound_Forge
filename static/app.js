@@ -70,8 +70,9 @@ $('sfx-provider').addEventListener('change', function() {
 $('voice-provider').addEventListener('change', function() {
   state.voiceProvider = this.value;
   state.voiceId = null;
-  const isOAI = this.value === 'openai';
-  $('el-settings').style.display  = isOAI ? 'none' : '';
+  const isOAI    = this.value === 'openai';
+  const isNvidia = this.value === 'nvidia';
+  $('el-settings').style.display  = (!isOAI && !isNvidia) ? '' : 'none';
   $('oai-settings').style.display = isOAI ? '' : 'none';
   loadVoices(this.value);
 });
