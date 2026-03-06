@@ -1,4 +1,5 @@
 customtkinter>=5.2.2
 httpx>=0.27.0
-pygame>=2.5.2
 Pillow>=10.4.0
+# Audio: Windows nutzt built-in WinMM (kein Install nötig).
+# Für andere Plattformen optional: pip install sounddevice soundfile
