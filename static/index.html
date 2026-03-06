@@ -34,16 +34,14 @@
       </div>
 
       <div class="row" style="margin-bottom:16px">
-        <button class="btn btn-ghost btn-sm" id="sfx-refine-toggle">
-          ✦ Prompt verfeinern
-        </button>
+        <button class="btn btn-ghost btn-sm" id="sfx-refine-toggle">✦ Prompt verfeinern</button>
       </div>
 
       <!-- Refine panel -->
       <div class="refine-panel" id="sfx-refine-panel">
         <div class="refine-row">
-          <select id="sfx-refine-model">
-            <option value="">Modell laden...</option>
+          <select id="sfx-refine-model" class="refine-model-sel">
+            <option value="">Modelle laden...</option>
           </select>
           <button class="btn btn-ghost btn-sm" id="sfx-refine-run">Verfeinern</button>
         </div>
@@ -146,8 +144,8 @@
 
       <div class="refine-panel" id="tts-refine-panel">
         <div class="refine-row">
-          <select id="tts-refine-model">
-            <option value="">Modell laden...</option>
+          <select id="tts-refine-model" class="refine-model-sel">
+            <option value="">Modelle laden...</option>
           </select>
           <button class="btn btn-ghost btn-sm" id="tts-refine-run">Verfeinern</button>
         </div>
@@ -253,6 +251,7 @@
           </div>
           <button class="btn btn-secondary btn-sm" data-test="elevenlabs">Testen</button>
         </div>
+        <div class="key-desc">SFX-Generierung + Text-to-Speech — <a href="https://elevenlabs.io" target="_blank">elevenlabs.io</a></div>
         <div class="key-status" id="status-elevenlabs"></div>
       </div>
 
@@ -265,6 +264,7 @@
           </div>
           <button class="btn btn-secondary btn-sm" data-test="openai">Testen</button>
         </div>
+        <div class="key-desc">Text-to-Speech (TTS-1 / TTS-1 HD, 6 Stimmen) — <a href="https://platform.openai.com" target="_blank">platform.openai.com</a></div>
         <div class="key-status" id="status-openai"></div>
       </div>
 
@@ -277,6 +277,7 @@
           </div>
           <button class="btn btn-secondary btn-sm" data-test="huggingface">Testen</button>
         </div>
+        <div class="key-desc">SFX (AudioGen, AudioLDM 2) + TTS (Bark, MMS) — kostenlos nutzbar — <a href="https://huggingface.co/settings/tokens" target="_blank">huggingface.co</a></div>
         <div class="key-status" id="status-huggingface"></div>
       </div>
 
@@ -289,7 +290,21 @@
           </div>
           <button class="btn btn-secondary btn-sm" data-test="openrouter">Testen</button>
         </div>
+        <div class="key-desc">Prompt-Verfeinerung via günstige/kostenlose LLMs (Gemma, Llama, etc.) — <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai</a></div>
         <div class="key-status" id="status-openrouter"></div>
+      </div>
+
+      <!-- NVIDIA NIM -->
+      <div class="field">
+        <label>NVIDIA NIM</label>
+        <div class="key-row">
+          <div class="field" style="margin:0">
+            <input type="password" id="key-nvidia" placeholder="nvapi-...">
+          </div>
+          <button class="btn btn-secondary btn-sm" data-test="nvidia">Testen</button>
+        </div>
+        <div class="key-desc">Prompt-Verfeinerung via NVIDIA-hosted LLMs (Nemotron, Llama, etc.) — <a href="https://build.nvidia.com/models" target="_blank">build.nvidia.com</a></div>
+        <div class="key-status" id="status-nvidia"></div>
       </div>
 
       <button class="btn btn-primary" id="settings-save" style="margin-top:8px">Speichern</button>

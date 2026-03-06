@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from pathlib import Path
 
 from core.config import load, save, get_key, set_key
-from api import elevenlabs, openai_tts, huggingface, openrouter
+from api import elevenlabs, openai_tts, huggingface, openrouter, nvidia_nim
 
 app = FastAPI(title="Sound Forge")
 
@@ -64,6 +64,7 @@ def test_key(body: TestKeyBody):
         "openai":      openai_tts.check_key,
         "huggingface": huggingface.check_key,
         "openrouter":  openrouter.check_key,
+        "nvidia":      nvidia_nim.check_key,
     }.get(body.provider)
     if not fn:
         raise HTTPException(400, "Unbekannter Provider")
@@ -162,22 +163,32 @@ def generate_voice(body: TTSBody):
         raise HTTPException(500, str(e))
 
 
-# ── OpenRouter ────────────────────────────────────────────────────────────────
+# ── Prompt Refinement Providers ───────────────────────────────────────────────
 
 @app.get("/api/openrouter/models")
 def or_models():
     return openrouter.get_cheap_models()
 
 
+@app.get("/api/nvidia/models")
+def nv_models():
+    return nvidia_nim.get_models()
+
+
 class RefineBody(BaseModel):
     prompt: str
     type: str = "sfx"
     model: str = "google/gemma-3-4b-it:free"
+    provider: str = "openrouter"
 
 
 @app.post("/api/prompt/refine")
 def refine(body: RefineBody):
     try:
-        return {"refined": openrouter.refine_prompt(body.prompt, body.type, body.model)}
+        if body.provider == "nvidia":
+            result = nvidia_nim.refine_prompt(body.prompt, body.type, body.model)
+        else:
+            result = openrouter.refine_prompt(body.prompt, body.type, body.model)
+        return {"refined": result}
     except Exception as e:
         raise HTTPException(400, str(e))

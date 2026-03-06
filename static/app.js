@@ -4,11 +4,8 @@ const state = {
   sfxExt:     'mp3',
   ttsBlob:    null,
   ttsExt:     'mp3',
-  sfxAudio:   null,
-  ttsAudio:   null,
   voiceId:    null,
   voiceProvider: 'elevenlabs',
-  orModels:   [],
 };
 
 /* ── Utils ─────────────────────────────────────────────────────────────── */
@@ -37,7 +34,10 @@ function setSpinner(id, visible) {
 
 function sliderSync(sliderId, valId, suffix = '') {
   const s = $(sliderId), v = $(valId);
-  const update = () => { v.textContent = parseFloat(s.value).toFixed(2).replace(/\.?0+$/, '') + suffix; };
+  const update = () => {
+    const n = parseFloat(s.value);
+    v.textContent = (Number.isInteger(n) ? n : n.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')) + suffix;
+  };
   update();
   s.addEventListener('input', update);
 }
@@ -85,7 +85,7 @@ $('voice-search').addEventListener('input', function() {
 });
 
 /* ── Audio playback ────────────────────────────────────────────────────── */
-function makePlayer(playBtnId, getBlob, getExt) {
+function makePlayer(playBtnId, getBlob) {
   let audio = null;
   const btn = $(playBtnId);
   btn.addEventListener('click', () => {
@@ -101,24 +101,23 @@ function makePlayer(playBtnId, getBlob, getExt) {
       const url = URL.createObjectURL(blob);
       audio = new Audio(url);
       audio._blob = blob;
-      audio._url = url;
+      audio._url  = url;
       audio.addEventListener('ended', () => { btn.textContent = '▶'; });
     }
     audio.play();
     btn.textContent = '⏸';
   });
-  return { stop: () => { if (audio) { audio.pause(); audio.currentTime = 0; btn.textContent = '▶'; } } };
 }
 
-makePlayer('sfx-play-btn', () => state.sfxBlob, () => state.sfxExt);
-makePlayer('tts-play-btn', () => state.ttsBlob, () => state.ttsExt);
+makePlayer('sfx-play-btn', () => state.sfxBlob);
+makePlayer('tts-play-btn', () => state.ttsBlob);
 
 /* ── Save audio ────────────────────────────────────────────────────────── */
 function saveAudio(blob, ext, prefix) {
   if (!blob) return;
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
+  const a   = document.createElement('a');
+  a.href     = url;
   a.download = `${prefix}_${Date.now()}.${ext}`;
   a.click();
   URL.revokeObjectURL(url);
@@ -138,16 +137,15 @@ $('sfx-generate').addEventListener('click', async () => {
   $('sfx-player').classList.remove('visible');
 
   try {
-    const body = {
-      prompt,
-      provider: $('sfx-provider').value,
-      duration: parseFloat($('sfx-duration').value),
-      hf_model: $('sfx-hf-model').value,
-    };
     const res = await apiFetch('/api/sfx/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        prompt,
+        provider: $('sfx-provider').value,
+        duration: parseFloat($('sfx-duration').value),
+        hf_model: $('sfx-hf-model').value,
+      }),
     });
     const ext = res.headers.get('X-Audio-Ext') || 'mp3';
     state.sfxBlob = await res.blob();
@@ -167,8 +165,8 @@ $('sfx-generate').addEventListener('click', async () => {
 /* ── TTS Generate ──────────────────────────────────────────────────────── */
 $('tts-generate').addEventListener('click', async () => {
   const text = $('tts-text').value.trim();
-  if (!text) { setStatus('tts-status', 'Bitte Text eingeben', true); return; }
-  if (!state.voiceId) { setStatus('tts-status', 'Bitte Stimme auswählen', true); return; }
+  if (!text)           { setStatus('tts-status', 'Bitte Text eingeben', true);    return; }
+  if (!state.voiceId)  { setStatus('tts-status', 'Bitte Stimme auswählen', true); return; }
 
   setSpinner('tts-spinner', true);
   setStatus('tts-status', 'Generiere...');
@@ -177,20 +175,19 @@ $('tts-generate').addEventListener('click', async () => {
 
   try {
     const provider = state.voiceProvider;
-    const body = {
-      text,
-      provider,
-      voice_id:   state.voiceId,
-      model_id:   provider === 'openai' ? $('oai-model').value : $('tts-model').value,
-      stability:  parseFloat($('tts-stability').value),
-      similarity: parseFloat($('tts-similarity').value),
-      style:      0.1,
-      speed:      parseFloat(provider === 'openai' ? $('oai-speed').value : $('tts-speed').value),
-    };
     const res = await apiFetch('/api/voice/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        text,
+        provider,
+        voice_id:   state.voiceId,
+        model_id:   provider === 'openai' ? $('oai-model').value : $('tts-model').value,
+        stability:  parseFloat($('tts-stability').value),
+        similarity: parseFloat($('tts-similarity').value),
+        style:      0.1,
+        speed:      parseFloat(provider === 'openai' ? $('oai-speed').value : $('tts-speed').value),
+      }),
     });
     const ext = res.headers.get('X-Audio-Ext') || 'mp3';
     state.ttsBlob = await res.blob();
@@ -212,98 +209,113 @@ async function loadVoices(provider) {
   const grid = $('voice-grid');
   grid.innerHTML = '<div class="voice-loading">Lade Stimmen...</div>';
   state.voiceId = null;
-
   try {
-    const res = await apiFetch(`/api/voices/${provider}`);
+    const res    = await apiFetch(`/api/voices/${provider}`);
     const voices = await res.json();
-    renderVoices(voices, provider);
+    renderVoices(voices);
   } catch (e) {
     grid.innerHTML = `<div class="voice-loading" style="color:#e05252">${e.message}</div>`;
   }
 }
 
-function renderVoices(voices, provider) {
+function renderVoices(voices) {
   const grid = $('voice-grid');
   if (!voices.length) {
     grid.innerHTML = '<div class="voice-loading">Keine Stimmen gefunden</div>';
     return;
   }
   grid.innerHTML = '';
-
   voices.forEach(v => {
-    const id    = v.voice_id ?? v.id ?? v;
-    const name  = v.name ?? id;
-    const desc  = v.desc ?? v.labels?.accent ?? v.category ?? '';
+    const id         = v.voice_id ?? v.id ?? v;
+    const name       = v.name ?? id;
+    const desc       = v.desc ?? v.labels?.accent ?? v.category ?? '';
     const previewUrl = v.preview_url ?? null;
 
     const card = document.createElement('div');
-    card.className = 'voice-card';
-    card.dataset.name = name.toLowerCase();
-    card.dataset.id   = id;
+    card.className     = 'voice-card';
+    card.dataset.name  = name.toLowerCase();
+    card.dataset.id    = id;
     card.innerHTML = `
       <div class="voice-card-name">${name}</div>
       ${desc ? `<div class="voice-card-meta">${desc}</div>` : ''}
       ${previewUrl ? `<button class="voice-card-preview" title="Vorschau">▶</button>` : ''}
     `;
-
-    card.addEventListener('click', (e) => {
+    card.addEventListener('click', e => {
       if (e.target.classList.contains('voice-card-preview')) return;
       document.querySelectorAll('.voice-card').forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
       state.voiceId = id;
     });
-
     const previewBtn = card.querySelector('.voice-card-preview');
     if (previewBtn) {
-      previewBtn.addEventListener('click', async (e) => {
+      previewBtn.addEventListener('click', async e => {
         e.stopPropagation();
         try {
-          const res = await apiFetch(`/api/voice/preview?url=${encodeURIComponent(previewUrl)}`);
+          const res  = await apiFetch(`/api/voice/preview?url=${encodeURIComponent(previewUrl)}`);
           const blob = await res.blob();
-          const url = URL.createObjectURL(blob);
-          const a = new Audio(url);
+          const url  = URL.createObjectURL(blob);
+          const a    = new Audio(url);
           a.play();
           previewBtn.textContent = '⏸';
           a.addEventListener('ended', () => { previewBtn.textContent = '▶'; URL.revokeObjectURL(url); });
         } catch (_) {}
       });
     }
-
     grid.appendChild(card);
   });
 }
 
-/* ── OpenRouter Models ─────────────────────────────────────────────────── */
-async function loadORModels() {
-  try {
-    const res = await apiFetch('/api/openrouter/models');
-    state.orModels = await res.json();
-    updateModelSelects();
-  } catch (_) {
-    state.orModels = [];
-  }
-}
+/* ── Refine Models (combined OpenRouter + NVIDIA) ──────────────────────── */
+async function loadRefineModels() {
+  let orModels  = [];
+  let nvModels  = [];
 
-function updateModelSelects() {
-  ['sfx-refine-model', 'tts-refine-model'].forEach(id => {
-    const sel = $(id);
+  try {
+    const r = await apiFetch('/api/openrouter/models');
+    orModels = await r.json();
+  } catch (_) {}
+
+  try {
+    const r = await apiFetch('/api/nvidia/models');
+    nvModels = await r.json();
+  } catch (_) {}
+
+  document.querySelectorAll('.refine-model-sel').forEach(sel => {
     sel.innerHTML = '';
-    if (!state.orModels.length) {
-      sel.innerHTML = '<option value="">Kein OpenRouter-Key gesetzt</option>';
+
+    if (!orModels.length && !nvModels.length) {
+      sel.innerHTML = '<option value="">OpenRouter- oder NVIDIA-Key erforderlich</option>';
       return;
     }
-    state.orModels.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m.id;
-      const tag = m.is_free ? '[free] ' : '';
-      opt.textContent = tag + (m.name ?? m.id);
-      sel.appendChild(opt);
-    });
+
+    if (orModels.length) {
+      const grp = document.createElement('optgroup');
+      grp.label = 'OpenRouter';
+      orModels.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value       = `openrouter::${m.id}`;
+        opt.textContent = (m.is_free ? '[free] ' : '') + (m.name ?? m.id);
+        grp.appendChild(opt);
+      });
+      sel.appendChild(grp);
+    }
+
+    if (nvModels.length) {
+      const grp = document.createElement('optgroup');
+      grp.label = 'NVIDIA NIM';
+      nvModels.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value       = `nvidia::${m.id}`;
+        opt.textContent = m.name ?? m.id;
+        grp.appendChild(opt);
+      });
+      sel.appendChild(grp);
+    }
   });
 }
 
-/* ── Refine Panel ──────────────────────────────────────────────────────── */
-function setupRefine(toggleId, panelId, modelId, runId, resultId, actionsId, discardId, applyId, textareaId, type) {
+/* ── Refine Panel setup ────────────────────────────────────────────────── */
+function setupRefine(toggleId, panelId, modelSelId, runId, resultId, actionsId, discardId, applyId, textareaId, type) {
   $(toggleId).addEventListener('click', () => {
     $(panelId).classList.toggle('visible');
   });
@@ -311,8 +323,10 @@ function setupRefine(toggleId, panelId, modelId, runId, resultId, actionsId, dis
   $(runId).addEventListener('click', async () => {
     const prompt = $(textareaId).value.trim();
     if (!prompt) return;
-    const model = $(modelId).value;
-    if (!model) return;
+    const selected = $(modelSelId).value;
+    if (!selected || !selected.includes('::')) return;
+
+    const [provider, model] = selected.split('::');
 
     $(runId).disabled = true;
     $(resultId).textContent = 'Verfeinere...';
@@ -323,7 +337,7 @@ function setupRefine(toggleId, panelId, modelId, runId, resultId, actionsId, dis
       const res = await apiFetch('/api/prompt/refine', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, type, model }),
+        body: JSON.stringify({ prompt, type, model, provider }),
       });
       const data = await res.json();
       $(resultId).textContent = data.refined;
@@ -362,7 +376,6 @@ async function loadConfig() {
     const res = await apiFetch('/api/config');
     const cfg = await res.json();
     $('output-format').value = cfg.default_format ?? 'mp3';
-    // Show placeholder if key is set
     Object.entries(cfg.keys_set ?? {}).forEach(([provider, set]) => {
       const el = $('key-' + provider);
       if (el && set) el.placeholder = '••••••••  (gesetzt)';
@@ -373,28 +386,28 @@ async function loadConfig() {
 document.querySelectorAll('[data-test]').forEach(btn => {
   btn.addEventListener('click', async () => {
     const provider = btn.dataset.test;
-    const keyEl = $('key-' + provider);
-    const key = keyEl.value.trim();
+    const keyEl    = $('key-' + provider);
+    const key      = keyEl.value.trim();
     const statusEl = $('status-' + provider);
     if (!key) { statusEl.textContent = 'Key eingeben'; statusEl.className = 'key-status error'; return; }
 
     btn.disabled = true;
     statusEl.textContent = 'Teste...';
-    statusEl.className = 'key-status';
+    statusEl.className   = 'key-status';
     try {
-      const res = await apiFetch('/api/test-key', {
+      const res  = await apiFetch('/api/test-key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ provider, key }),
       });
       const data = await res.json();
-      const ok = data.result?.startsWith('OK');
+      const ok   = data.result?.startsWith('OK');
       statusEl.textContent = data.result;
-      statusEl.className = 'key-status ' + (ok ? 'ok' : 'error');
-      if (ok && provider === 'openrouter') loadORModels();
+      statusEl.className   = 'key-status ' + (ok ? 'ok' : 'error');
+      if (ok && (provider === 'openrouter' || provider === 'nvidia')) loadRefineModels();
     } catch (e) {
       statusEl.textContent = e.message;
-      statusEl.className = 'key-status error';
+      statusEl.className   = 'key-status error';
     } finally {
       btn.disabled = false;
     }
@@ -403,11 +416,10 @@ document.querySelectorAll('[data-test]').forEach(btn => {
 
 $('settings-save').addEventListener('click', async () => {
   const keys = {};
-  ['elevenlabs', 'openai', 'huggingface', 'openrouter'].forEach(p => {
+  ['elevenlabs', 'openai', 'huggingface', 'openrouter', 'nvidia'].forEach(p => {
     const v = $('key-' + p).value.trim();
     if (v) keys[p] = v;
   });
-
   try {
     await apiFetch('/api/config', {
       method: 'POST',
@@ -415,7 +427,7 @@ $('settings-save').addEventListener('click', async () => {
       body: JSON.stringify({ api_keys: keys, default_format: $('output-format').value }),
     });
     setStatus('settings-status', 'Gespeichert.');
-    if (keys.openrouter) loadORModels();
+    if (keys.openrouter || keys.nvidia) loadRefineModels();
     setTimeout(() => setStatus('settings-status', ''), 3000);
   } catch (e) {
     setStatus('settings-status', e.message, true);
@@ -425,6 +437,8 @@ $('settings-save').addEventListener('click', async () => {
 /* ── Init ──────────────────────────────────────────────────────────────── */
 (async function init() {
   await loadConfig();
-  await loadVoices('elevenlabs');
-  await loadORModels();
+  await Promise.all([
+    loadVoices('elevenlabs'),
+    loadRefineModels(),
+  ]);
 })();
