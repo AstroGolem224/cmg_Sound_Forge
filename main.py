@@ -1,9 +1,4 @@
-import customtkinter as ctk
-from ui.app import SoundForgeApp
-
-ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("dark-blue")
+import uvicorn
 
 if __name__ == "__main__":
-    app = SoundForgeApp()
-    app.mainloop()
+    uvicorn.run("app:app", host="127.0.0.1", port=8765, reload=True)

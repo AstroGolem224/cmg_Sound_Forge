@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sound Forge — CMG</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-logo">SF</div>
+    <h1 class="header-title">Sound <span>Forge</span></h1>
+  </header>
+
+  <!-- Tabs -->
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="sfx">SFX</button>
+    <button class="tab-btn" data-tab="voice">Stimmen</button>
+    <button class="tab-btn" data-tab="settings">Einstellungen</button>
+  </nav>
+
+  <!-- ── SFX Tab ─────────────────────────────────────────────────── -->
+  <section id="tab-sfx" class="tab-panel active">
+
+    <div class="card">
+      <div class="card-title">Sound-Effekt generieren</div>
+
+      <div class="field">
+        <label>Prompt</label>
+        <textarea id="sfx-prompt" rows="3" placeholder="z.B. 'Epic sword clash with metallic ring'"></textarea>
+      </div>
+
+      <div class="row" style="margin-bottom:16px">
+        <button class="btn btn-ghost btn-sm" id="sfx-refine-toggle">
+          ✦ Prompt verfeinern
+        </button>
+      </div>
+
+      <!-- Refine panel -->
+      <div class="refine-panel" id="sfx-refine-panel">
+        <div class="refine-row">
+          <select id="sfx-refine-model">
+            <option value="">Modell laden...</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" id="sfx-refine-run">Verfeinern</button>
+        </div>
+        <div class="refine-result" id="sfx-refine-result"></div>
+        <div class="refine-actions" id="sfx-refine-actions" style="display:none">
+          <button class="btn btn-secondary btn-sm" id="sfx-refine-discard">Verwerfen</button>
+          <button class="btn btn-primary btn-sm" id="sfx-refine-apply">Übernehmen</button>
+        </div>
+      </div>
+
+      <div class="col-2">
+        <div class="field">
+          <label>Provider</label>
+          <select id="sfx-provider">
+            <option value="elevenlabs">ElevenLabs</option>
+            <option value="huggingface">Hugging Face</option>
+          </select>
+        </div>
+
+        <div class="field" id="sfx-hf-model-wrap" style="display:none">
+          <label>HF Modell</label>
+          <select id="sfx-hf-model">
+            <option value="facebook/audiogen-medium">AudioGen Medium</option>
+            <option value="cvssp/audioldm2">AudioLDM 2</option>
+          </select>
+        </div>
+
+        <div class="field" id="sfx-duration-wrap">
+          <label>Dauer (Sek.)</label>
+          <div class="slider-row">
+            <input type="range" id="sfx-duration" min="1" max="22" step="0.5" value="3">
+            <span class="slider-val" id="sfx-duration-val">3.0s</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full" id="sfx-generate" style="margin-top:4px">
+        ▶ Generieren
+      </button>
+
+      <div class="status-bar">
+        <div class="spinner" id="sfx-spinner"></div>
+        <span id="sfx-status"></span>
+      </div>
+    </div>
+
+    <!-- Player -->
+    <div class="audio-player" id="sfx-player">
+      <button class="audio-play-btn" id="sfx-play-btn">▶</button>
+      <div class="audio-info">
+        <div class="audio-label">Generierter SFX</div>
+        <div class="audio-name" id="sfx-audio-name">—</div>
+      </div>
+      <button class="audio-save-btn" id="sfx-save">Speichern</button>
+    </div>
+
+  </section>
+
+  <!-- ── Voice Tab ───────────────────────────────────────────────── -->
+  <section id="tab-voice" class="tab-panel">
+
+    <!-- Voice Browser -->
+    <div class="card">
+      <div class="card-title">Stimme auswählen</div>
+
+      <div class="col-2" style="margin-bottom:14px">
+        <div class="field" style="margin:0">
+          <label>Provider</label>
+          <select id="voice-provider">
+            <option value="elevenlabs">ElevenLabs</option>
+            <option value="openai">OpenAI</option>
+            <option value="huggingface">Hugging Face</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0">
+          <label>Suche</label>
+          <input type="text" id="voice-search" placeholder="Name filtern...">
+        </div>
+      </div>
+
+      <div class="voice-browser">
+        <div class="voice-grid" id="voice-grid">
+          <div class="voice-loading">Stimmen laden...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TTS -->
+    <div class="card">
+      <div class="card-title">Text-to-Speech</div>
+
+      <div class="field">
+        <label>Text</label>
+        <textarea id="tts-text" rows="3" placeholder="Text eingeben, der gesprochen werden soll..."></textarea>
+      </div>
+
+      <div class="row" style="margin-bottom:16px">
+        <button class="btn btn-ghost btn-sm" id="tts-refine-toggle">✦ Prompt verfeinern</button>
+      </div>
+
+      <div class="refine-panel" id="tts-refine-panel">
+        <div class="refine-row">
+          <select id="tts-refine-model">
+            <option value="">Modell laden...</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" id="tts-refine-run">Verfeinern</button>
+        </div>
+        <div class="refine-result" id="tts-refine-result"></div>
+        <div class="refine-actions" id="tts-refine-actions" style="display:none">
+          <button class="btn btn-secondary btn-sm" id="tts-refine-discard">Verwerfen</button>
+          <button class="btn btn-primary btn-sm" id="tts-refine-apply">Übernehmen</button>
+        </div>
+      </div>
+
+      <!-- EL-only settings -->
+      <div id="el-settings">
+        <div class="col-2">
+          <div class="field">
+            <label>Modell</label>
+            <select id="tts-model">
+              <option value="eleven_multilingual_v2">Multilingual v2</option>
+              <option value="eleven_monolingual_v1">Monolingual v1 (EN)</option>
+              <option value="eleven_turbo_v2_5">Turbo v2.5</option>
+              <option value="eleven_turbo_v2">Turbo v2 (EN)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Geschwindigkeit</label>
+            <div class="slider-row">
+              <input type="range" id="tts-speed" min="0.7" max="1.3" step="0.05" value="1.0">
+              <span class="slider-val" id="tts-speed-val">1.0×</span>
+            </div>
+          </div>
+        </div>
+        <div class="col-2">
+          <div class="field">
+            <label>Stabilität</label>
+            <div class="slider-row">
+              <input type="range" id="tts-stability" min="0" max="1" step="0.05" value="0.7">
+              <span class="slider-val" id="tts-stability-val">0.70</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>Similarity</label>
+            <div class="slider-row">
+              <input type="range" id="tts-similarity" min="0" max="1" step="0.05" value="0.6">
+              <span class="slider-val" id="tts-similarity-val">0.60</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OpenAI-only settings -->
+      <div id="oai-settings" style="display:none">
+        <div class="col-2">
+          <div class="field">
+            <label>Modell</label>
+            <select id="oai-model">
+              <option value="tts-1">TTS-1 (schnell)</option>
+              <option value="tts-1-hd">TTS-1 HD (höhere Qualität)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Geschwindigkeit</label>
+            <div class="slider-row">
+              <input type="range" id="oai-speed" min="0.25" max="4.0" step="0.05" value="1.0">
+              <span class="slider-val" id="oai-speed-val">1.0×</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full" id="tts-generate" style="margin-top:4px">
+        ▶ Sprechen
+      </button>
+
+      <div class="status-bar">
+        <div class="spinner" id="tts-spinner"></div>
+        <span id="tts-status"></span>
+      </div>
+    </div>
+
+    <!-- Player -->
+    <div class="audio-player" id="tts-player">
+      <button class="audio-play-btn" id="tts-play-btn">▶</button>
+      <div class="audio-info">
+        <div class="audio-label">Generierte Stimme</div>
+        <div class="audio-name" id="tts-audio-name">—</div>
+      </div>
+      <button class="audio-save-btn" id="tts-save">Speichern</button>
+    </div>
+
+  </section>
+
+  <!-- ── Settings Tab ────────────────────────────────────────────── -->
+  <section id="tab-settings" class="tab-panel">
+
+    <div class="card">
+      <div class="card-title">API Keys</div>
+
+      <!-- ElevenLabs -->
+      <div class="field">
+        <label>ElevenLabs</label>
+        <div class="key-row">
+          <div class="field" style="margin:0">
+            <input type="password" id="key-elevenlabs" placeholder="xi-...">
+          </div>
+          <button class="btn btn-secondary btn-sm" data-test="elevenlabs">Testen</button>
+        </div>
+        <div class="key-status" id="status-elevenlabs"></div>
+      </div>
+
+      <!-- OpenAI -->
+      <div class="field">
+        <label>OpenAI</label>
+        <div class="key-row">
+          <div class="field" style="margin:0">
+            <input type="password" id="key-openai" placeholder="sk-...">
+          </div>
+          <button class="btn btn-secondary btn-sm" data-test="openai">Testen</button>
+        </div>
+        <div class="key-status" id="status-openai"></div>
+      </div>
+
+      <!-- Hugging Face -->
+      <div class="field">
+        <label>Hugging Face</label>
+        <div class="key-row">
+          <div class="field" style="margin:0">
+            <input type="password" id="key-huggingface" placeholder="hf_...">
+          </div>
+          <button class="btn btn-secondary btn-sm" data-test="huggingface">Testen</button>
+        </div>
+        <div class="key-status" id="status-huggingface"></div>
+      </div>
+
+      <!-- OpenRouter -->
+      <div class="field">
+        <label>OpenRouter</label>
+        <div class="key-row">
+          <div class="field" style="margin:0">
+            <input type="password" id="key-openrouter" placeholder="sk-or-...">
+          </div>
+          <button class="btn btn-secondary btn-sm" data-test="openrouter">Testen</button>
+        </div>
+        <div class="key-status" id="status-openrouter"></div>
+      </div>
+
+      <button class="btn btn-primary" id="settings-save" style="margin-top:8px">Speichern</button>
+      <div class="status-bar"><span id="settings-status"></span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Ausgabe</div>
+      <div class="field">
+        <label>Standard-Format</label>
+        <select id="output-format">
+          <option value="mp3">MP3</option>
+          <option value="wav">WAV</option>
+        </select>
+      </div>
+    </div>
+
+  </section>
+
+</div>
+<script src="/static/app.js"></script>
+</body>
+</html>
