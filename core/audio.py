@@ -10,7 +10,9 @@ def init() -> bool:
     global _mixer_ok
     try:
         import pygame
-        pygame.mixer.init(frequency=44100)
+        pygame.init()
+        pygame.mixer.pre_init(frequency=44100, size=-16, channels=2, buffer=512)
+        pygame.mixer.init()
         _mixer_ok = True
     except Exception:
         _mixer_ok = False

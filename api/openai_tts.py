@@ -16,6 +16,10 @@ MODELS = [
 ]
 
 
+def get_voices() -> list:
+    return VOICES
+
+
 def check_key() -> str:
     key = get_key("openai")
     if not key:
