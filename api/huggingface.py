@@ -1,5 +1,6 @@
 import httpx
 from core.config import get_key
+from api._http import raise_for_status
 
 _BASE = "https://api-inference.huggingface.co/models"
 
@@ -30,7 +31,7 @@ def check_key() -> str:
         )
         if r.status_code == 401:
             return "Ungültiger Token"
-        r.raise_for_status()
+        raise_for_status(r)
         name = r.json().get("name", "?")
         return f"OK — {name}"
     except httpx.TimeoutException:
@@ -53,7 +54,7 @@ def _infer(model_id: str, inputs: str) -> tuple[bytes, str]:
         raise RuntimeError(
             "Modell lädt gerade (Cold Start). Bitte in ~30 Sek. erneut versuchen."
         )
-    r.raise_for_status()
+    raise_for_status(r)
     ct = r.headers.get("content-type", "audio/wav")
     from core.audio import detect_ext
     return r.content, detect_ext(ct)

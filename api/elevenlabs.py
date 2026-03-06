@@ -1,5 +1,6 @@
 import httpx
 from core.config import get_key
+from api._http import raise_for_status
 
 _BASE = "https://api.elevenlabs.io/v1"
 
@@ -23,7 +24,7 @@ def check_key() -> str:
         r = httpx.get(f"{_BASE}/user", headers=_headers(), timeout=10)
         if r.status_code == 401:
             return "Ungültiger API-Key"
-        r.raise_for_status()
+        raise_for_status(r)
         data = r.json()
         tier = data.get("subscription", {}).get("tier", "unknown")
         return f"OK — Tier: {tier}"
@@ -38,13 +39,13 @@ def get_voices() -> list[dict]:
     if not key:
         return []
     r = httpx.get(f"{_BASE}/voices", headers=_headers(), timeout=15)
-    r.raise_for_status()
+    raise_for_status(r)
     return r.json().get("voices", [])
 
 
 def preview_voice(preview_url: str) -> bytes:
     r = httpx.get(preview_url, timeout=15)
-    r.raise_for_status()
+    raise_for_status(r)
     return r.content
 
 
@@ -58,7 +59,7 @@ def generate_sfx(prompt: str, duration: float) -> tuple[bytes, str]:
         json={"text": prompt, "duration_seconds": duration, "prompt_influence": 0.3},
         timeout=45,
     )
-    r.raise_for_status()
+    raise_for_status(r)
     ct = r.headers.get("content-type", "audio/mpeg")
     from core.audio import detect_ext
     return r.content, detect_ext(ct)
@@ -92,5 +93,5 @@ def generate_tts(
         },
         timeout=45,
     )
-    r.raise_for_status()
+    raise_for_status(r)
     return r.content, "mp3"

@@ -1,5 +1,6 @@
 import httpx
 from core.config import get_key
+from api._http import raise_for_status
 
 VOICES = [
     {"id": "alloy",   "name": "Alloy",   "desc": "Neutral, vielseitig"},
@@ -32,7 +33,7 @@ def check_key() -> str:
         )
         if r.status_code == 401:
             return "Ungültiger API-Key"
-        r.raise_for_status()
+        raise_for_status(r)
         return "OK"
     except httpx.TimeoutException:
         return "Timeout"
@@ -61,5 +62,5 @@ def generate_tts(
         },
         timeout=45,
     )
-    r.raise_for_status()
+    raise_for_status(r)
     return r.content, "mp3"
